@@ -125,7 +125,7 @@ export const login = async (email, password) => {
         const url = `${API_BASE_URL}${endpoint}`;
         console.log('Making request to:', url);
 
-        const response = await fetchWithRetry(url, {
+        const response = await retryFetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
