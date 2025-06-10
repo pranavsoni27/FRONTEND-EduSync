@@ -1,4 +1,5 @@
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5008/api';
+// const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5008/api';
+const API_BASE = process.env.REACT_APP_API_URL || 'pranavwebapp1-ebcdg5gjbzfrbvh8.centralindia-01.azurewebsites.net';
 
 const handleResponse = async (response) => {
     if (!response.ok) {
