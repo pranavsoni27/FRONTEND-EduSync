@@ -5,7 +5,8 @@ const API_BASE = process.env.REACT_APP_API_URL || 'https://pranavwebapp1-ebcdg5g
 const getHeaders = (token = null) => {
     const headers = {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Origin': window.location.origin
     };
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -43,48 +44,30 @@ const handleResponse = async (response, endpoint) => {
     return response.json();
 };
 
+// Common fetch options for all requests
+const getFetchOptions = (method, body = null, token = null) => ({
+    method,
+    headers: getHeaders(token),
+    mode: 'cors',
+    credentials: 'include',
+    ...(body && { body: JSON.stringify(body) })
+});
+
 export const uploadCourse = async (course, token) => {
-    const res = await fetch(`${API_BASE}/courses`, {
-        method: 'POST',
-        headers: getHeaders(token),
-        credentials: 'include',
-        body: JSON.stringify(course),
-    });
+    const res = await fetch(`${API_BASE}/courses`, getFetchOptions('POST', course, token));
     return handleResponse(res, '/courses');
 };
 
 export const login = async (email, password, role) => {
     try {
-        const loginData = { email, password, role };
         console.log('Login attempt with data:', { email, role });
         const endpoint = '/auth/login';
-        console.log('Making request to:', `${API_BASE}${endpoint}`);
+        const url = `${API_BASE}${endpoint}`;
+        console.log('Making request to:', url);
 
-        // First, make an OPTIONS request to check CORS
-        try {
-            const preflightResponse = await fetch(`${API_BASE}${endpoint}`, {
-                method: 'OPTIONS',
-                headers: getHeaders(),
-                mode: 'cors',
-                credentials: 'include'
-            });
-            console.log('Preflight response:', {
-                status: preflightResponse.status,
-                headers: Object.fromEntries(preflightResponse.headers.entries())
-            });
-        } catch (preflightError) {
-            console.warn('Preflight request failed:', preflightError);
-        }
-        
-        const response = await fetch(`${API_BASE}${endpoint}`, {
-            method: 'POST',
-            headers: getHeaders(),
-            mode: 'cors',
-            credentials: 'include',
-            body: JSON.stringify(loginData)
-        });
-
+        const response = await fetch(url, getFetchOptions('POST', { email, password, role }));
         const data = await handleResponse(response, endpoint);
+        
         console.log('Login successful, received data:', { 
             hasToken: !!data.token, 
             hasId: !!data.id,
@@ -111,34 +94,12 @@ export const register = async (email, password, role) => {
     try {
         console.log('Attempting to register with:', { email, role });
         const endpoint = '/auth/register';
-        console.log('Making request to:', `${API_BASE}${endpoint}`);
-        
-        // First, make an OPTIONS request to check CORS
-        try {
-            const preflightResponse = await fetch(`${API_BASE}${endpoint}`, {
-                method: 'OPTIONS',
-                headers: getHeaders(),
-                mode: 'cors',
-                credentials: 'include'
-            });
-            console.log('Preflight response:', {
-                status: preflightResponse.status,
-                headers: Object.fromEntries(preflightResponse.headers.entries())
-            });
-        } catch (preflightError) {
-            console.warn('Preflight request failed:', preflightError);
-        }
+        const url = `${API_BASE}${endpoint}`;
+        console.log('Making request to:', url);
 
-        // Then make the actual request
-        const response = await fetch(`${API_BASE}${endpoint}`, {
-            method: 'POST',
-            headers: getHeaders(),
-            mode: 'cors',
-            credentials: 'include',
-            body: JSON.stringify({ email, password, role }),
-        });
-
+        const response = await fetch(url, getFetchOptions('POST', { email, password, role }));
         const data = await handleResponse(response, endpoint);
+        
         console.log('Registration successful:', { 
             hasToken: !!data.token, 
             hasId: !!data.id,
@@ -169,10 +130,7 @@ export const getCourses = async (token) => {
         throw new Error('Authentication token is required');
     }
 
-    const res = await fetch(`${API_BASE}/courses`, {
-        headers: getHeaders(token),
-        credentials: 'include'
-    });
+    const res = await fetch(`${API_BASE}/courses`, getFetchOptions('GET', null, token));
     return handleResponse(res, '/courses').then(data => data.map(course => ({
         id: course.courseId,
         title: course.title,
@@ -192,12 +150,7 @@ export const joinCourse = async (courseId, token) => {
 
     try {
         console.log('Attempting to join course:', courseId);
-        const res = await fetch(`${API_BASE}/courses/${courseId}/join`, {
-            method: 'POST',
-            headers: getHeaders(token),
-            credentials: 'include'
-        });
-
+        const res = await fetch(`${API_BASE}/courses/${courseId}/join`, getFetchOptions('POST', null, token));
         return handleResponse(res, `/courses/${courseId}/join`);
     } catch (error) {
         console.error('Error joining course:', error);
