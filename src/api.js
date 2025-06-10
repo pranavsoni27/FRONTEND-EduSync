@@ -5,9 +5,7 @@ const API_BASE = process.env.REACT_APP_API_URL || 'https://pranavwebapp1-ebcdg5g
 const getHeaders = (token = null) => {
     const headers = {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Origin': window.location.origin,
-        'Access-Control-Allow-Origin': '*'
+        'Accept': 'application/json'
     };
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -58,18 +56,17 @@ export const uploadCourse = async (course, token) => {
 export const login = async (email, password, role) => {
     try {
         const loginData = { email, password, role };
-        console.log('Login attempt with data:', { email, role }); // Don't log password
+        console.log('Login attempt with data:', { email, role });
         console.log('API URL:', `${API_BASE}/auth/login`);
         
         const response = await fetch(`${API_BASE}/auth/login`, {
             method: 'POST',
             headers: getHeaders(),
-            credentials: 'include',
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'omit',
             body: JSON.stringify(loginData)
         });
-
-        console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
         const data = await handleResponse(response, '/auth/login');
         console.log('Login successful, received data:', { 
@@ -103,8 +100,9 @@ export const register = async (email, password, role) => {
         const response = await fetch(`${API_BASE}${endpoint}`, {
             method: 'POST',
             headers: getHeaders(),
-            credentials: 'include',
             mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'omit',
             body: JSON.stringify({ email, password, role }),
         });
 
