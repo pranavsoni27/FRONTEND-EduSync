@@ -127,20 +127,35 @@ export const login = async (email, password, role) => {
 
 export const register = async (email, password, role, firstName, lastName) => {
     try {
-        console.log('Attempting to register with:', { email, role, firstName, lastName });
-        const endpoint = '/auth/register';
-        const url = `${API_BASE}${endpoint}`;
-        console.log('Making request to:', url);
-
-        // Try the request with retry logic
-        const response = await retryFetch(url, getFetchOptions('POST', { 
+        const payload = { 
             email, 
             password, 
             role,
             firstName,
             lastName
-        }));
-        const data = await handleResponse(response, endpoint);
+        };
+        console.log('Registration payload:', JSON.stringify(payload, null, 2));
+        console.log('Attempting to register with:', { ...payload, password: '***' });
+        const endpoint = '/auth/register';
+        const url = `${API_BASE}${endpoint}`;
+        console.log('Making request to:', url);
+
+        // Try the request with retry logic
+        const response = await retryFetch(url, getFetchOptions('POST', payload));
+        
+        // Log the raw response for debugging
+        console.log('Raw response:', response);
+        const responseText = await response.text();
+        console.log('Response text:', responseText);
+        
+        // Parse the response text as JSON
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            console.error('Error parsing response:', e);
+            throw new Error(`Invalid JSON response: ${responseText}`);
+        }
         
         console.log('Registration successful:', { 
             hasToken: !!data.token, 
