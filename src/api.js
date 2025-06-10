@@ -118,34 +118,45 @@ export const uploadCourse = async (course, token) => {
     return handleResponse(res, '/courses');
 };
 
-export const login = async (email, password, role) => {
+export const login = async (email, password) => {
     try {
-        console.log('Login attempt with data:', { email, role });
+        console.log('Login attempt with data:', { email });
         const endpoint = '/auth/login';
         const url = `${API_BASE_URL}${endpoint}`;
         console.log('Making request to:', url);
 
-        const response = await retryFetch(url, getFetchOptions('POST', { email, password, role }));
-        const data = await handleResponse(response, endpoint);
-        
-        console.log('Login successful, received data:', { 
-            hasToken: !!data.token, 
-            hasId: !!data.id,
-            role: data.role 
+        const response = await fetchWithRetry(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email,
+                password,
+                role: 'student' // Default role for login, backend will validate against actual user role
+            })
         });
 
-        if (!data.token || !data.id) {
-            throw new Error('Server response missing required data');
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Login failed:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorText
+            });
+            throw new Error(`HTTP error! status: ${response.status}${errorText ? ` - ${errorText}` : ''}`);
         }
 
-        return {
-            token: data.token,
-            id: data.id,
-            email: data.email,
-            role: data.role
-        };
+        const data = await response.json();
+        console.log('Login successful:', { 
+            id: data.id, 
+            email: data.email, 
+            role: data.role 
+        });
+        
+        return data;
     } catch (error) {
-        console.error('Login error details:', error);
+        console.error('Login error:', error);
         throw error;
     }
 };
