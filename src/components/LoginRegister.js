@@ -25,7 +25,7 @@ const LoginRegister = ({ onLogin }) => {
             
             let response;
             if (isLogin) {
-                response = await login(formData.email, formData.password);
+                response = await login(formData.email, formData.password, formData.role);
             } else {
                 response = await register(
                     formData.email,
@@ -156,22 +156,20 @@ const LoginRegister = ({ onLogin }) => {
                                     />
                                     <label htmlFor="password">Password</label>
                                 </div>
-                                {!isLogin && (
-                                    <div className="form-floating mb-3">
-                                        <select
-                                            className="form-select"
-                                            id="role"
-                                            name="role"
-                                            value={formData.role}
-                                            onChange={handleChange}
-                                            required
-                                        >
-                                            <option value="student">Student</option>
-                                            <option value="instructor">Instructor</option>
-                                        </select>
-                                        <label htmlFor="role">Role</label>
-                                    </div>
-                                )}
+                                <div className="form-floating mb-3">
+                                    <select
+                                        className="form-select"
+                                        id="role"
+                                        name="role"
+                                        value={formData.role}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <option value="student">Student</option>
+                                        <option value="instructor">Instructor</option>
+                                    </select>
+                                    <label htmlFor="role">Role</label>
+                                </div>
                                 <div className="d-grid">
                                     <button
                                         className="btn btn-success btn-lg"

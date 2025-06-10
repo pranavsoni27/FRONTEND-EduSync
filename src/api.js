@@ -118,9 +118,9 @@ export const uploadCourse = async (course, token) => {
     return handleResponse(res, '/courses');
 };
 
-export const login = async (email, password) => {
+export const login = async (email, password, role) => {
     try {
-        console.log('Login attempt with data:', { email });
+        console.log('Login attempt with data:', { email, role });
         const endpoint = '/auth/login';
         const url = `${API_BASE_URL}${endpoint}`;
         console.log('Making request to:', url);
@@ -133,21 +133,22 @@ export const login = async (email, password) => {
             body: JSON.stringify({
                 email,
                 password,
-                role: 'student' // Default role for login, backend will validate against actual user role
+                role
             })
         });
 
+        const data = await response.json();
+        console.log('Parsed response data:', data);
+
         if (!response.ok) {
-            const errorText = await response.text();
             console.error('Login failed:', {
                 status: response.status,
                 statusText: response.statusText,
-                errorText
+                data
             });
-            throw new Error(`HTTP error! status: ${response.status}${errorText ? ` - ${errorText}` : ''}`);
+            throw new Error(`HTTP error! status: ${response.status}${data ? ` - ${JSON.stringify(data)}` : ''}`);
         }
 
-        const data = await response.json();
         console.log('Login successful:', { 
             id: data.id, 
             email: data.email, 
