@@ -5,8 +5,7 @@ const API_BASE = process.env.REACT_APP_API_URL || 'https://pranavwebapp1-ebcdg5g
 const getHeaders = (token = null) => {
     const headers = {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+        'Accept': 'application/json'
     };
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -49,7 +48,7 @@ const getFetchOptions = (method, body = null, token = null) => ({
     method,
     headers: getHeaders(token),
     mode: 'cors',
-    credentials: 'include',
+    credentials: 'omit',
     cache: 'no-cache',
     redirect: 'follow',
     ...(body && { body: JSON.stringify(body) })
@@ -59,20 +58,30 @@ const getFetchOptions = (method, body = null, token = null) => ({
 const retryFetch = async (url, options, retries = 3, delay = 1000) => {
     for (let i = 0; i < retries; i++) {
         try {
+            console.log(`Attempt ${i + 1} to fetch ${url}`);
             const response = await fetch(url, options);
+            
+            // Log response details for debugging
+            console.log('Response status:', response.status);
+            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+            
             if (response.ok) {
                 return response;
             }
-            // If we get a CORS error, wait and retry
+            
+            // If we get a CORS error or network error, wait and retry
             if (response.status === 0 || response.status === 404) {
                 console.log(`Attempt ${i + 1} failed, retrying in ${delay}ms...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 continue;
             }
-            return response;
+            
+            // For other errors, throw immediately
+            throw new Error(`HTTP error! status: ${response.status}`);
         } catch (error) {
+            console.error(`Attempt ${i + 1} failed:`, error);
             if (i === retries - 1) throw error;
-            console.log(`Attempt ${i + 1} failed, retrying in ${delay}ms...`);
+            console.log(`Retrying in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
