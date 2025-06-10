@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { login, register } from '../api';
+import { useNavigate } from 'react-router-dom';
 
 const LoginRegister = ({ onLogin }) => {
     const [isLogin, setIsLogin] = useState(true);
@@ -12,51 +13,61 @@ const LoginRegister = ({ onLogin }) => {
         lastName: ''
     });
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError(null);
         setLoading(true);
+
         try {
-            console.log('Attempting to:', isLogin ? 'login' : 'register', 'with:', { ...formData, password: '***' });
+            console.log('Attempting to:', isLogin ? 'login' : 'register', 'with:', formData);
             
-            const response = isLogin 
-                ? await login(formData.email, formData.password, formData.role)
-                : await register(
-                    formData.email, 
-                    formData.password, 
+            let response;
+            if (isLogin) {
+                response = await login(formData.email, formData.password);
+            } else {
+                response = await register(
+                    formData.email,
+                    formData.password,
                     formData.role,
                     formData.firstName,
                     formData.lastName
                 );
-            
+            }
+
             console.log('Auth response:', response);
-
-            if (!response) {
-                throw new Error('No response from server');
-            }
-
-            if (!response.token) {
-                throw new Error('Authentication token missing');
-            }
-
-            if (!response.id) {
-                throw new Error('User ID missing from response');
-            }
-
-            const userData = {
-                id: response.id,
-                token: response.token,
-                email: response.email,
-                role: response.role
-            };
-
-            console.log('Setting user data:', { ...userData, token: '***' });
-            onLogin(userData);
             
-            toast.success(isLogin ? 'Login successful!' : 'Registration successful!');
+            if (response && response.token) {
+                // Store the token and user info
+                localStorage.setItem('token', response.token);
+                localStorage.setItem('user', JSON.stringify({
+                    id: response.id,
+                    email: response.email,
+                    role: response.role
+                }));
+                
+                // Update auth context
+                onLogin({
+                    id: response.id,
+                    token: response.token,
+                    email: response.email,
+                    role: response.role
+                });
+
+                // Redirect based on role
+                if (response.role === 'student') {
+                    navigate('/student-dashboard');
+                } else if (response.role === 'instructor') {
+                    navigate('/instructor-dashboard');
+                }
+            } else {
+                throw new Error('Invalid response from server');
+            }
         } catch (error) {
             console.error('Auth error:', error);
-            toast.error(error.message || (isLogin ? 'Login failed' : 'Registration failed'));
+            setError(error.message || 'An error occurred during authentication');
         } finally {
             setLoading(false);
         }

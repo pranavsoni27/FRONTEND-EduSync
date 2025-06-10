@@ -69,37 +69,40 @@ const retryFetch = async (url, options, retries = 3, delay = 1000) => {
             const responseText = await response.text();
             console.log('Response text:', responseText);
             
-            if (response.ok) {
-                return response;
+            if (!response.ok) {
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    // Try to parse the response as JSON for more detailed error message
+                    const errorData = JSON.parse(responseText);
+                    if (errorData.message) {
+                        errorMessage += ` - ${errorData.message}`;
+                    }
+                    if (errorData.error) {
+                        errorMessage += ` (${errorData.error})`;
+                    }
+                    if (errorData.errors) {
+                        errorMessage += ` - Validation errors: ${JSON.stringify(errorData.errors)}`;
+                    }
+                } catch (e) {
+                    // If response isn't JSON, use the raw text
+                    if (responseText) {
+                        errorMessage += ` - ${responseText}`;
+                    }
+                }
+                throw new Error(errorMessage);
             }
-            
-            // If we get a CORS error or network error, wait and retry
-            if (response.status === 0 || response.status === 404) {
-                console.log(`Attempt ${i + 1} failed, retrying in ${delay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                continue;
-            }
-            
-            let errorMessage = `HTTP error! status: ${response.status}`;
+
+            // Try to parse the response as JSON
+            let data;
             try {
-                // Try to parse the response as JSON for more detailed error message
-                const errorData = JSON.parse(responseText);
-                if (errorData.message) {
-                    errorMessage += ` - ${errorData.message}`;
-                }
-                if (errorData.error) {
-                    errorMessage += ` (${errorData.error})`;
-                }
-                if (errorData.errors) {
-                    errorMessage += ` - Validation errors: ${JSON.stringify(errorData.errors)}`;
-                }
+                data = JSON.parse(responseText);
+                console.log('Parsed response data:', data);
+                return data;
             } catch (e) {
-                // If response isn't JSON, use the raw text
-                if (responseText) {
-                    errorMessage += ` - ${responseText}`;
-                }
+                console.error('Error parsing response as JSON:', e);
+                console.log('Raw response text:', responseText);
+                throw new Error('Invalid JSON response from server');
             }
-            throw new Error(errorMessage);
         } catch (error) {
             console.error(`Attempt ${i + 1} failed:`, error);
             if (i === retries - 1) throw error;
@@ -148,58 +151,36 @@ export const login = async (email, password, role) => {
 };
 
 export const register = async (email, password, role, firstName, lastName) => {
-    try {
-        const payload = { 
-            email, 
-            password, 
-            role,
-            firstName,
-            lastName
-        };
-        console.log('Registration payload:', JSON.stringify(payload, null, 2));
-        console.log('Attempting to register with:', { ...payload, password: '***' });
-        const endpoint = '/auth/register';
-        const url = `${API_BASE}${endpoint}`;
-        console.log('Making request to:', url);
+    const payload = {
+        email,
+        password,
+        role,
+        firstName,
+        lastName
+    };
+    
+    console.log('Registration payload:', payload);
+    console.log('Attempting to register with:', { email, role, firstName, lastName });
+    console.log('Making request to:', `${API_BASE}/api/auth/register`);
 
-        // Try the request with retry logic
-        const response = await retryFetch(url, getFetchOptions('POST', payload));
-        
-        // Log the raw response for debugging
-        console.log('Raw response:', response);
-        const responseText = await response.text();
-        console.log('Response text:', responseText);
-        
-        // Parse the response text as JSON
-        let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch (e) {
-            console.error('Error parsing response:', e);
-            throw new Error(`Invalid JSON response: ${responseText}`);
-        }
-        
-        console.log('Registration successful:', { 
-            hasToken: !!data.token, 
-            hasId: !!data.id,
-            role: data.role 
+    try {
+        const data = await retryFetch(`${API_BASE}/api/auth/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
         });
 
-        if (!data.token || !data.id) {
-            throw new Error('Server response missing required data');
-        }
-
-        return {
-            token: data.token,
-            id: data.id,
-            email: data.email,
-            role: data.role
-        };
+        console.log('Registration successful:', { 
+            id: data.id, 
+            email: data.email, 
+            role: data.role 
+        });
+        
+        return data;
     } catch (error) {
         console.error('Registration error details:', error);
-        if (error.message.includes('Network error') || error.message.includes('Failed to fetch')) {
-            throw new Error('Unable to connect to the server. Please check your internet connection and try again.');
-        }
         throw error;
     }
 };
