@@ -6,7 +6,8 @@ const getHeaders = (token = null) => {
     const headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Origin': window.location.origin
+        'Origin': window.location.origin,
+        'Access-Control-Allow-Origin': '*'
     };
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -14,22 +15,29 @@ const getHeaders = (token = null) => {
     return headers;
 };
 
-const handleResponse = async (response) => {
+const handleResponse = async (response, endpoint) => {
+    console.log(`Response from ${endpoint}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+    });
+
     if (!response.ok) {
         let errorMessage;
         try {
             const data = await response.json();
+            console.error(`Error response from ${endpoint}:`, data);
             if (data.errors && Array.isArray(data.errors)) {
                 errorMessage = data.errors.join(', ');
             } else {
                 errorMessage = data.message || 'An error occurred';
             }
         } catch (e) {
-            // Handle CORS or network errors
+            console.error(`Error parsing response from ${endpoint}:`, e);
             if (e.name === 'TypeError' && e.message === 'Failed to fetch') {
                 errorMessage = 'Network error: Unable to reach the server. Please check your connection or try again later.';
             } else {
-                errorMessage = `Server error: ${response.status}`;
+                errorMessage = `Server error: ${response.status} - ${response.statusText}`;
             }
         }
         throw new Error(errorMessage);
@@ -44,7 +52,7 @@ export const uploadCourse = async (course, token) => {
         credentials: 'include',
         body: JSON.stringify(course),
     });
-    return handleResponse(res);
+    return handleResponse(res, '/courses');
 };
 
 export const login = async (email, password, role) => {
@@ -63,7 +71,7 @@ export const login = async (email, password, role) => {
         console.log('Response status:', response.status);
         console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
-        const data = await handleResponse(response);
+        const data = await handleResponse(response, '/auth/login');
         console.log('Login successful, received data:', { 
             hasToken: !!data.token, 
             hasId: !!data.id,
@@ -89,14 +97,23 @@ export const login = async (email, password, role) => {
 export const register = async (email, password, role) => {
     try {
         console.log('Attempting to register with:', { email, role });
-        const response = await fetch(`${API_BASE}/auth/register`, {
+        const endpoint = '/auth/register';
+        console.log('Making request to:', `${API_BASE}${endpoint}`);
+        
+        const response = await fetch(`${API_BASE}${endpoint}`, {
             method: 'POST',
             headers: getHeaders(),
             credentials: 'include',
+            mode: 'cors',
             body: JSON.stringify({ email, password, role }),
         });
 
-        const data = await handleResponse(response);
+        const data = await handleResponse(response, endpoint);
+        console.log('Registration successful:', { 
+            hasToken: !!data.token, 
+            hasId: !!data.id,
+            role: data.role 
+        });
 
         if (!data.token || !data.id) {
             throw new Error('Server response missing required data');
@@ -110,6 +127,9 @@ export const register = async (email, password, role) => {
         };
     } catch (error) {
         console.error('Registration error details:', error);
+        if (error.message.includes('Network error')) {
+            throw new Error('Unable to connect to the server. Please check your internet connection and try again.');
+        }
         throw error;
     }
 };
@@ -123,7 +143,7 @@ export const getCourses = async (token) => {
         headers: getHeaders(token),
         credentials: 'include'
     });
-    return handleResponse(res).then(data => data.map(course => ({
+    return handleResponse(res, '/courses').then(data => data.map(course => ({
         id: course.courseId,
         title: course.title,
         description: course.description,
@@ -148,7 +168,7 @@ export const joinCourse = async (courseId, token) => {
             credentials: 'include'
         });
 
-        return handleResponse(res);
+        return handleResponse(res, `/courses/${courseId}/join`);
     } catch (error) {
         console.error('Error joining course:', error);
         throw error;
@@ -169,7 +189,7 @@ export const getJoinedCourses = async (userId, token) => {
             credentials: 'include'
         });
         
-        return handleResponse(res).then(data => data.map(course => ({
+        return handleResponse(res, `/users/${userId}/courses`).then(data => data.map(course => ({
             id: course.courseId,
             title: course.title,
             description: course.description,
@@ -193,7 +213,7 @@ export const getCourseAssessments = async (courseId, token) => {
     const res = await fetch(`${API_BASE}/courses/${courseId}/assessments`, {
         headers: { Authorization: `Bearer ${token}` }
     });
-    return handleResponse(res);
+    return handleResponse(res, `/courses/${courseId}/assessments`);
 };
 
 export const getUserResults = async (userId, token) => {
