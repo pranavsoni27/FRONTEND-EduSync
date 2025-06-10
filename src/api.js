@@ -1,5 +1,5 @@
 // const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5008/api';
-const API_BASE = process.env.REACT_APP_API_URL || 'https://pranavwebapp1-ebcdg5gjbzfrbvh8.centralindia-01.azurewebsites.net/api';
+const API_BASE_URL = 'https://pranavwebapp1-ebcdg5gjbzfrbvh8.centralindia-01.azurewebsites.net/api';
 
 // Common headers for all requests
 const getHeaders = (token = null) => {
@@ -114,7 +114,7 @@ const retryFetch = async (url, options, retries = 3, delay = 1000) => {
 };
 
 export const uploadCourse = async (course, token) => {
-    const res = await fetch(`${API_BASE}/courses`, getFetchOptions('POST', course, token));
+    const res = await fetch(`${API_BASE_URL}/courses`, getFetchOptions('POST', course, token));
     return handleResponse(res, '/courses');
 };
 
@@ -122,7 +122,7 @@ export const login = async (email, password, role) => {
     try {
         console.log('Login attempt with data:', { email, role });
         const endpoint = '/auth/login';
-        const url = `${API_BASE}${endpoint}`;
+        const url = `${API_BASE_URL}${endpoint}`;
         console.log('Making request to:', url);
 
         const response = await retryFetch(url, getFetchOptions('POST', { email, password, role }));
@@ -160,11 +160,11 @@ export const register = async (email, password, role, firstName, lastName) => {
     };
     
     console.log('Registration payload:', payload);
-    console.log('Attempting to register with:', { email, role, firstName, lastName });
-    console.log('Making request to:', `${API_BASE}/api/auth/register`);
+    console.log('Attempting to register with:', { ...payload, password: '******' });
+    console.log('Making request to:', `${API_BASE_URL}/auth/register`);
 
     try {
-        const data = await retryFetch(`${API_BASE}/api/auth/register`, {
+        const response = await retryFetch(`${API_BASE_URL}/auth/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -173,12 +173,12 @@ export const register = async (email, password, role, firstName, lastName) => {
         });
 
         console.log('Registration successful:', { 
-            id: data.id, 
-            email: data.email, 
-            role: data.role 
+            id: response.id, 
+            email: response.email, 
+            role: response.role 
         });
         
-        return data;
+        return response;
     } catch (error) {
         console.error('Registration error details:', error);
         throw error;
@@ -190,7 +190,7 @@ export const getCourses = async (token) => {
         throw new Error('Authentication token is required');
     }
 
-    const res = await fetch(`${API_BASE}/courses`, getFetchOptions('GET', null, token));
+    const res = await fetch(`${API_BASE_URL}/courses`, getFetchOptions('GET', null, token));
     return handleResponse(res, '/courses').then(data => data.map(course => ({
         id: course.courseId,
         title: course.title,
@@ -210,7 +210,7 @@ export const joinCourse = async (courseId, token) => {
 
     try {
         console.log('Attempting to join course:', courseId);
-        const res = await fetch(`${API_BASE}/courses/${courseId}/join`, getFetchOptions('POST', null, token));
+        const res = await fetch(`${API_BASE_URL}/courses/${courseId}/join`, getFetchOptions('POST', null, token));
         return handleResponse(res, `/courses/${courseId}/join`);
     } catch (error) {
         console.error('Error joining course:', error);
@@ -227,7 +227,7 @@ export const getJoinedCourses = async (userId, token) => {
     }
 
     try {
-        const res = await fetch(`${API_BASE}/users/${userId}/courses`, {
+        const res = await fetch(`${API_BASE_URL}/users/${userId}/courses`, {
             headers: getHeaders(token),
             credentials: 'include'
         });
@@ -253,7 +253,7 @@ export const getCourseAssessments = async (courseId, token) => {
         throw new Error('Course ID is required');
     }
 
-    const res = await fetch(`${API_BASE}/courses/${courseId}/assessments`, {
+    const res = await fetch(`${API_BASE_URL}/courses/${courseId}/assessments`, {
         headers: { Authorization: `Bearer ${token}` }
     });
     return handleResponse(res, `/courses/${courseId}/assessments`);
@@ -268,7 +268,7 @@ export const getUserResults = async (userId, token) => {
     }
 
     try {
-    const res = await fetch(`${API_BASE}/users/${userId}/results`, {
+    const res = await fetch(`${API_BASE_URL}/users/${userId}/results`, {
             headers: { 
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -303,7 +303,7 @@ export const getCourseContents = async (courseId, token) => {
     }
 
     try {
-        const res = await fetch(`${API_BASE}/courses/${courseId}/contents`, {
+        const res = await fetch(`${API_BASE_URL}/courses/${courseId}/contents`, {
             headers: { 
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -344,7 +344,7 @@ export const startAssessment = async (assessmentId, token) => {
     try {
         console.log('Starting assessment:', assessmentId);
         console.log('Using token:', token.substring(0, 10) + '...');
-        const response = await fetch(`${API_BASE}/assessments/${assessmentId}/start`, {
+        const response = await fetch(`${API_BASE_URL}/assessments/${assessmentId}/start`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -406,7 +406,7 @@ export const submitAssessment = async (assessmentId, answers, token) => {
             answers: answersArray
         });
 
-        const res = await fetch(`${API_BASE}/assessments/${assessmentId}/submit`, {
+        const res = await fetch(`${API_BASE_URL}/assessments/${assessmentId}/submit`, {
             method: 'POST',
             headers: { 
                 'Authorization': `Bearer ${token}`,
@@ -440,7 +440,7 @@ export const uploadCourseContent = async (courseId, content, token) => {
     }
 
     try {
-        const res = await fetch(`${API_BASE}/courses/${courseId}/content`, {
+        const res = await fetch(`${API_BASE_URL}/courses/${courseId}/content`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -476,7 +476,7 @@ export const createAssessment = async (courseId, assessment, token) => {
     }
 
     try {
-        const res = await fetch(`${API_BASE}/courses/${courseId}/assessments`, {
+        const res = await fetch(`${API_BASE_URL}/courses/${courseId}/assessments`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -512,7 +512,7 @@ export const uploadAssessment = async (assessment, token) => {
     }
 
     try {
-        const res = await fetch(`${API_BASE}/courses/${assessment.courseId}/assessments`, {
+        const res = await fetch(`${API_BASE_URL}/courses/${assessment.courseId}/assessments`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -551,7 +551,7 @@ export const getStudentPerformance = async (courseId, token) => {
     }
 
     try {
-        const res = await fetch(`${API_BASE}/courses/${courseId}/student-performance`, {
+        const res = await fetch(`${API_BASE_URL}/courses/${courseId}/student-performance`, {
             headers: { 
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
