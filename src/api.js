@@ -65,6 +65,10 @@ const retryFetch = async (url, options, retries = 3, delay = 1000) => {
             console.log('Response status:', response.status);
             console.log('Response headers:', Object.fromEntries(response.headers.entries()));
             
+            // Get response text for logging
+            const responseText = await response.text();
+            console.log('Response text:', responseText);
+            
             if (response.ok) {
                 return response;
             }
@@ -76,8 +80,26 @@ const retryFetch = async (url, options, retries = 3, delay = 1000) => {
                 continue;
             }
             
-            // For other errors, throw immediately
-            throw new Error(`HTTP error! status: ${response.status}`);
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                // Try to parse the response as JSON for more detailed error message
+                const errorData = JSON.parse(responseText);
+                if (errorData.message) {
+                    errorMessage += ` - ${errorData.message}`;
+                }
+                if (errorData.error) {
+                    errorMessage += ` (${errorData.error})`;
+                }
+                if (errorData.errors) {
+                    errorMessage += ` - Validation errors: ${JSON.stringify(errorData.errors)}`;
+                }
+            } catch (e) {
+                // If response isn't JSON, use the raw text
+                if (responseText) {
+                    errorMessage += ` - ${responseText}`;
+                }
+            }
+            throw new Error(errorMessage);
         } catch (error) {
             console.error(`Attempt ${i + 1} failed:`, error);
             if (i === retries - 1) throw error;
