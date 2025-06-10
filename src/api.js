@@ -5,7 +5,8 @@ const API_BASE = process.env.REACT_APP_API_URL || 'https://pranavwebapp1-ebcdg5g
 const getHeaders = (token = null) => {
     const headers = {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
     };
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -50,8 +51,33 @@ const getFetchOptions = (method, body = null, token = null) => ({
     mode: 'cors',
     credentials: 'include',
     cache: 'no-cache',
+    redirect: 'follow',
     ...(body && { body: JSON.stringify(body) })
 });
+
+// Retry logic for failed requests
+const retryFetch = async (url, options, retries = 3, delay = 1000) => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url, options);
+            if (response.ok) {
+                return response;
+            }
+            // If we get a CORS error, wait and retry
+            if (response.status === 0 || response.status === 404) {
+                console.log(`Attempt ${i + 1} failed, retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            return response;
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            console.log(`Attempt ${i + 1} failed, retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    throw new Error('Max retries reached');
+};
 
 export const uploadCourse = async (course, token) => {
     const res = await fetch(`${API_BASE}/courses`, getFetchOptions('POST', course, token));
@@ -65,7 +91,7 @@ export const login = async (email, password, role) => {
         const url = `${API_BASE}${endpoint}`;
         console.log('Making request to:', url);
 
-        const response = await fetch(url, getFetchOptions('POST', { email, password, role }));
+        const response = await retryFetch(url, getFetchOptions('POST', { email, password, role }));
         const data = await handleResponse(response, endpoint);
         
         console.log('Login successful, received data:', { 
@@ -97,22 +123,8 @@ export const register = async (email, password, role) => {
         const url = `${API_BASE}${endpoint}`;
         console.log('Making request to:', url);
 
-        // First try a simple GET request to check connectivity
-        try {
-            const testResponse = await fetch(url, {
-                method: 'GET',
-                mode: 'cors',
-                credentials: 'include'
-            });
-            console.log('Test request response:', {
-                status: testResponse.status,
-                headers: Object.fromEntries(testResponse.headers.entries())
-            });
-        } catch (testError) {
-            console.warn('Test request failed:', testError);
-        }
-
-        const response = await fetch(url, getFetchOptions('POST', { email, password, role }));
+        // Try the request with retry logic
+        const response = await retryFetch(url, getFetchOptions('POST', { email, password, role }));
         const data = await handleResponse(response, endpoint);
         
         console.log('Registration successful:', { 
@@ -133,7 +145,7 @@ export const register = async (email, password, role) => {
         };
     } catch (error) {
         console.error('Registration error details:', error);
-        if (error.message.includes('Network error')) {
+        if (error.message.includes('Network error') || error.message.includes('Failed to fetch')) {
             throw new Error('Unable to connect to the server. Please check your internet connection and try again.');
         }
         throw error;
