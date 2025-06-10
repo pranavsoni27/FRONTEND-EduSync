@@ -7,7 +7,9 @@ const LoginRegister = ({ onLogin }) => {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
-        role: 'student'
+        role: 'student',
+        firstName: '',
+        lastName: ''
     });
     const [loading, setLoading] = useState(false);
 
@@ -19,7 +21,13 @@ const LoginRegister = ({ onLogin }) => {
             
             const response = isLogin 
                 ? await login(formData.email, formData.password, formData.role)
-                : await register(formData.email, formData.password, formData.role);
+                : await register(
+                    formData.email, 
+                    formData.password, 
+                    formData.role,
+                    formData.firstName,
+                    formData.lastName
+                );
             
             console.log('Auth response:', response);
 
@@ -72,6 +80,32 @@ const LoginRegister = ({ onLogin }) => {
                         </div>
                         <div className="card-body p-4">
                             <form onSubmit={handleSubmit}>
+                                {!isLogin && (
+                                    <>
+                                        <div className="mb-3">
+                                            <label className="form-label">First Name</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                name="firstName"
+                                                value={formData.firstName}
+                                                onChange={handleChange}
+                                                required={!isLogin}
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Last Name</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                name="lastName"
+                                                value={formData.lastName}
+                                                onChange={handleChange}
+                                                required={!isLogin}
+                                            />
+                                        </div>
+                                    </>
+                                )}
                                 <div className="mb-3">
                                     <label className="form-label">Email address</label>
                                     <input

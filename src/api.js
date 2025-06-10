@@ -125,15 +125,21 @@ export const login = async (email, password, role) => {
     }
 };
 
-export const register = async (email, password, role) => {
+export const register = async (email, password, role, firstName, lastName) => {
     try {
-        console.log('Attempting to register with:', { email, role });
+        console.log('Attempting to register with:', { email, role, firstName, lastName });
         const endpoint = '/auth/register';
         const url = `${API_BASE}${endpoint}`;
         console.log('Making request to:', url);
 
         // Try the request with retry logic
-        const response = await retryFetch(url, getFetchOptions('POST', { email, password, role }));
+        const response = await retryFetch(url, getFetchOptions('POST', { 
+            email, 
+            password, 
+            role,
+            firstName,
+            lastName
+        }));
         const data = await handleResponse(response, endpoint);
         
         console.log('Registration successful:', { 
