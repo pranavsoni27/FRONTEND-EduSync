@@ -22,13 +22,10 @@ const StudentDashboard = ({ user }) => {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingCourse, setLoadingCourse] = useState(false);
-    const [selectedAssessment, setSelectedAssessment] = useState(null);
     const [answers, setAnswers] = useState({});
     const [timeLeft, setTimeLeft] = useState(null);
     const [currentAssessment, setCurrentAssessment] = useState(null);
     const [showAssessmentModal, setShowAssessmentModal] = useState(false);
-    const [timerActive, setTimerActive] = useState(false);
-    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -80,7 +77,7 @@ const StudentDashboard = ({ user }) => {
                 clearInterval(timer);
             }
         };
-    }, [timeLeft]);
+    }, [timeLeft, handleSubmitAssessment]);
 
     const handleJoin = async (courseId) => {
         if (!user?.token) {
@@ -175,18 +172,14 @@ const StudentDashboard = ({ user }) => {
             setCurrentAssessment({ ...assessmentData, questions: questionsWithIds });
             setShowAssessmentModal(true);
             setTimeLeft(assessmentData.duration * 60); 
-            setTimerActive(true);
             setAnswers({}); 
-            setError(null);
         } catch (error) {
             console.error('Error starting assessment:', error);
             const errorMessage = error.message || 'Failed to start assessment';
             toast.error(errorMessage);
-            setError(errorMessage);
             setShowAssessmentModal(false);
             setCurrentAssessment(null);
             setTimeLeft(null);
-            setTimerActive(false);
         }
     };
 

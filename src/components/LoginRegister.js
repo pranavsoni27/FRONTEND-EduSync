@@ -10,7 +10,6 @@ const LoginRegister = ({ onLogin }) => {
         role: 'student'
     });
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();

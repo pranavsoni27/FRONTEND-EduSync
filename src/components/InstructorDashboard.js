@@ -93,12 +93,6 @@ const InstructorDashboard = ({ user }) => {
         setShowCourseDetails(false);
     };
 
-    const openCourseDetails = (course) => {
-        setSelectedCourse(course);
-        setShowCourseDetails(true);
-        setShowContentModal(false);
-    };
-
     const handleAssessmentSubmit = async (e) => {
         e.preventDefault();
         if (numQuestions === 0) {
