@@ -125,7 +125,7 @@ export const login = async (email, password, role) => {
         const url = `${API_BASE_URL}${endpoint}`;
         console.log('Making request to:', url);
 
-        const response = await retryFetch(url, {
+        const data = await retryFetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -136,29 +136,6 @@ export const login = async (email, password, role) => {
                 role
             })
         });
-
-        // Get the response text first
-        const responseText = await response.text();
-        console.log('Response text:', responseText);
-
-        // Parse the response text as JSON
-        let data;
-        try {
-            data = JSON.parse(responseText);
-            console.log('Parsed response data:', data);
-        } catch (parseError) {
-            console.error('Failed to parse response as JSON:', parseError);
-            throw new Error('Invalid response format from server');
-        }
-
-        if (!response.ok) {
-            console.error('Login failed:', {
-                status: response.status,
-                statusText: response.statusText,
-                data
-            });
-            throw new Error(`HTTP error! status: ${response.status}${data ? ` - ${JSON.stringify(data)}` : ''}`);
-        }
 
         if (!data.token || !data.id || !data.role) {
             throw new Error('Invalid response data from server');
