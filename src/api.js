@@ -33,7 +33,7 @@ const handleResponse = async (response, endpoint) => {
         } catch (e) {
             console.error(`Error parsing response from ${endpoint}:`, e);
             if (e.name === 'TypeError' && e.message === 'Failed to fetch') {
-                errorMessage = 'Network error: Unable to reach the server. Please check your connection or try again later.';
+                errorMessage = 'Network error: Unable to reach the server. Please check your internet connection or try again later.';
             } else {
                 errorMessage = `Server error: ${response.status} - ${response.statusText}`;
             }
@@ -57,18 +57,34 @@ export const login = async (email, password, role) => {
     try {
         const loginData = { email, password, role };
         console.log('Login attempt with data:', { email, role });
-        console.log('API URL:', `${API_BASE}/auth/login`);
+        const endpoint = '/auth/login';
+        console.log('Making request to:', `${API_BASE}${endpoint}`);
+
+        // First, make an OPTIONS request to check CORS
+        try {
+            const preflightResponse = await fetch(`${API_BASE}${endpoint}`, {
+                method: 'OPTIONS',
+                headers: getHeaders(),
+                mode: 'cors',
+                credentials: 'include'
+            });
+            console.log('Preflight response:', {
+                status: preflightResponse.status,
+                headers: Object.fromEntries(preflightResponse.headers.entries())
+            });
+        } catch (preflightError) {
+            console.warn('Preflight request failed:', preflightError);
+        }
         
-        const response = await fetch(`${API_BASE}/auth/login`, {
+        const response = await fetch(`${API_BASE}${endpoint}`, {
             method: 'POST',
             headers: getHeaders(),
             mode: 'cors',
-            cache: 'no-cache',
-            credentials: 'omit',
+            credentials: 'include',
             body: JSON.stringify(loginData)
         });
 
-        const data = await handleResponse(response, '/auth/login');
+        const data = await handleResponse(response, endpoint);
         console.log('Login successful, received data:', { 
             hasToken: !!data.token, 
             hasId: !!data.id,
@@ -97,12 +113,28 @@ export const register = async (email, password, role) => {
         const endpoint = '/auth/register';
         console.log('Making request to:', `${API_BASE}${endpoint}`);
         
+        // First, make an OPTIONS request to check CORS
+        try {
+            const preflightResponse = await fetch(`${API_BASE}${endpoint}`, {
+                method: 'OPTIONS',
+                headers: getHeaders(),
+                mode: 'cors',
+                credentials: 'include'
+            });
+            console.log('Preflight response:', {
+                status: preflightResponse.status,
+                headers: Object.fromEntries(preflightResponse.headers.entries())
+            });
+        } catch (preflightError) {
+            console.warn('Preflight request failed:', preflightError);
+        }
+
+        // Then make the actual request
         const response = await fetch(`${API_BASE}${endpoint}`, {
             method: 'POST',
             headers: getHeaders(),
             mode: 'cors',
-            cache: 'no-cache',
-            credentials: 'omit',
+            credentials: 'include',
             body: JSON.stringify({ email, password, role }),
         });
 
