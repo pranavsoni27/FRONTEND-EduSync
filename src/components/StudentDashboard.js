@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     getCourses,
     joinCourse,
@@ -27,36 +27,30 @@ const StudentDashboard = ({ user }) => {
     const [currentAssessment, setCurrentAssessment] = useState(null);
     const [showAssessmentModal, setShowAssessmentModal] = useState(false);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!user?.id || !user?.token) {
-                console.error('User data:', user);
-                toast.error('User information is missing');
-                setLoading(false);
-                return;
-            }
+    const handleSubmitAssessment = useCallback(async () => {
+        if (!user?.token) {
+            toast.error('Authentication required');
+            return;
+        }
 
-            try {
-                setLoading(true);
-                console.log('Fetching data for user:', user.id);
-                const [coursesData, joinedData, resultsData] = await Promise.all([
-                    getCourses(user.token),
-                    getJoinedCourses(user.id, user.token),
-                    getUserResults(user.id, user.token)
-                ]);
-                setAllCourses(coursesData);
-                setJoinedCourses(joinedData);
-                setResults(resultsData);
-            } catch (error) {
-                console.error('Error loading dashboard:', error);
-                toast.error(error.message || 'Failed to load dashboard data');
-            } finally {
-                setLoading(false);
-            }
-        };
+        if (!currentAssessment) {
+            toast.error('No assessment selected');
+            return;
+        }
 
-        fetchData();
-    }, [user]);
+        try {
+            const result = await submitAssessment(currentAssessment.assessmentId, answers, user.token);
+            toast.success(`Assessment submitted successfully! Your score: ${result.score}/${result.maxScore}`);
+            setShowAssessmentModal(false);
+            setCurrentAssessment(null);
+            setTimeLeft(null);
+            // Optionally refresh results
+            const updatedResults = await getUserResults(user.id, user.token);
+            setResults(updatedResults);
+        } catch (error) {
+            toast.error(error.message || 'Failed to submit assessment');
+        }
+    }, [user, currentAssessment, answers]);
 
     useEffect(() => {
         let timer;
@@ -79,6 +73,8 @@ const StudentDashboard = ({ user }) => {
         };
     }, [timeLeft, handleSubmitAssessment]);
 
+    useEffect(() => {
+        const fetchData = async () => {
     const handleJoin = async (courseId) => {
         if (!user?.token) {
             toast.error('Authentication required');
