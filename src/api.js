@@ -1,5 +1,5 @@
 // const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5008/api';
-const API_BASE = process.env.REACT_APP_API_URL || 'pranavwebapp1-ebcdg5gjbzfrbvh8.centralindia-01.azurewebsites.net';
+const API_BASE = process.env.REACT_APP_API_URL || 'https://pranavwebapp1-ebcdg5gjbzfrbvh8.centralindia-01.azurewebsites.net/api';
 
 const handleResponse = async (response) => {
     if (!response.ok) {
@@ -37,16 +37,37 @@ export const uploadCourse = async (course, token) => {
 
 export const login = async (email, password, role) => {
     try {
-        console.log('Attempting to login with:', { email, role });
+        const loginData = { email, password, role };
+        console.log('Login attempt with data:', { email, role }); // Don't log password
+        console.log('API URL:', `${API_BASE}/auth/login`);
+        
         const response = await fetch(`${API_BASE}/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Origin': window.location.origin
             },
-            body: JSON.stringify({ email, password, role }),
+            credentials: 'include', // Include cookies if any
+            body: JSON.stringify(loginData)
         });
 
-        const data = await handleResponse(response);
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Login failed with status:', response.status);
+            console.error('Error details:', errorData);
+            throw new Error(errorData.message || `Login failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Login successful, received data:', { 
+            hasToken: !!data.token, 
+            hasId: !!data.id,
+            role: data.role 
+        });
 
         if (!data.token || !data.id) {
             throw new Error('Server response missing required data');
