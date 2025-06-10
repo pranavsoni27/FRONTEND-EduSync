@@ -5,8 +5,7 @@ const API_BASE = process.env.REACT_APP_API_URL || 'https://pranavwebapp1-ebcdg5g
 const getHeaders = (token = null) => {
     const headers = {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Origin': window.location.origin
+        'Accept': 'application/json'
     };
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -50,6 +49,7 @@ const getFetchOptions = (method, body = null, token = null) => ({
     headers: getHeaders(token),
     mode: 'cors',
     credentials: 'include',
+    cache: 'no-cache',
     ...(body && { body: JSON.stringify(body) })
 });
 
@@ -96,6 +96,21 @@ export const register = async (email, password, role) => {
         const endpoint = '/auth/register';
         const url = `${API_BASE}${endpoint}`;
         console.log('Making request to:', url);
+
+        // First try a simple GET request to check connectivity
+        try {
+            const testResponse = await fetch(url, {
+                method: 'GET',
+                mode: 'cors',
+                credentials: 'include'
+            });
+            console.log('Test request response:', {
+                status: testResponse.status,
+                headers: Object.fromEntries(testResponse.headers.entries())
+            });
+        } catch (testError) {
+            console.warn('Test request failed:', testError);
+        }
 
         const response = await fetch(url, getFetchOptions('POST', { email, password, role }));
         const data = await handleResponse(response, endpoint);
